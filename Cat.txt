@@ -1,0 +1,155 @@
+// actions.js
+export const FETCH_CATEGORIES_REQUEST = 'FETCH_CATEGORIES_REQUEST';
+export const FETCH_CATEGORIES_SUCCESS = 'FETCH_CATEGORIES_SUCCESS';
+export const FETCH_CATEGORIES_FAILURE = 'FETCH_CATEGORIES_FAILURE';
+export const SELECT_CATEGORY = 'SELECT_CATEGORY';
+
+export const fetchCategoriesRequest = () => ({
+  type: FETCH_CATEGORIES_REQUEST
+});
+
+export const fetchCategoriesSuccess = categories => ({
+  type: FETCH_CATEGORIES_SUCCESS,
+  payload: categories
+});
+
+export const fetchCategoriesFailure = error => ({
+  type: FETCH_CATEGORIES_FAILURE,
+  payload: error
+});
+
+export const selectCategory = category => ({
+  type: SELECT_CATEGORY,
+  payload: category
+});
+
+export const fetchCategories = () => {
+  return dispatch => {
+    dispatch(fetchCategoriesRequest());
+    fetch('https://example.com/api/categories')
+      .then(response => response.json())
+      .then(data => {
+        dispatch(fetchCategoriesSuccess(data));
+      })
+      .catch(error => {
+        dispatch(fetchCategoriesFailure(error.message));
+      });
+  };
+};
+
+// reducers.js
+import {
+  FETCH_CATEGORIES_REQUEST,
+  FETCH_CATEGORIES_SUCCESS,
+  FETCH_CATEGORIES_FAILURE,
+  SELECT_CATEGORY
+} from './actions';
+
+const initialState = {
+  categories: [],
+  loading: false,
+  error: null,
+  selectedCategory: null
+};
+
+const categoriesReducer = (state = initialState, action) => {
+  switch (action.type) {
+    case FETCH_CATEGORIES_REQUEST:
+      return {
+        ...state,
+        loading: true,
+        error: null
+      };
+    case FETCH_CATEGORIES_SUCCESS:
+      return {
+        ...state,
+        loading: false,
+        categories: action.payload,
+        error: null
+      };
+    case FETCH_CATEGORIES_FAILURE:
+      return {
+        ...state,
+        loading: false,
+        error: action.payload
+      };
+    case SELECT_CATEGORY:
+      return {
+        ...state,
+        selectedCategory: action.payload
+      };
+    default:
+      return state;
+  }
+};
+
+export default categoriesReducer;
+
+
+// Categories.js
+import React, { useEffect } from 'react';
+import { useSelector, useDispatch } from 'react-redux';
+import { fetchCategories, selectCategory } from './actions';
+
+const Categories = () => {
+  const dispatch = useDispatch();
+  const categories = useSelector(state => state.categories.categories);
+  const selectedCategory = useSelector(state => state.categories.selectedCategory);
+
+  useEffect(() => {
+    dispatch(fetchCategories());
+  }, [dispatch]);
+
+  const handleCategoryClick = category => {
+    dispatch(selectCategory(category));
+  };
+
+  return (
+    <div>
+      <div>
+        {categories.map(category => (
+          <button
+            key={category.id}
+            onClick={() => handleCategoryClick(category)}
+            style={{ fontWeight: selectedCategory === category ? 'bold' : 'normal' }}
+          >
+            {category.name}
+          </button>
+        ))}
+      </div>
+      <div>
+        {selectedCategory && (
+          <div>
+            <h2>{selectedCategory.name}</h2>
+            <ul>
+              {selectedCategory.items.map(item => (
+                <li key={item.id}>{item.name}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default Categories;
+
+// App.js
+import React from 'react';
+import { Provider } from 'react-redux';
+import store from './store';
+import Categories from './Categories';
+
+const App = () => {
+  return (
+    <Provider store={store}>
+      <div>
+        <h1>Category List</h1>
+        <Categories />
+      </div>
+    </Provider>
+  );
+};
+
+export default App;
